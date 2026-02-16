@@ -1,0 +1,15 @@
+.app-icon {
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #e56e3d 7.7%, #0b0605 52.9%, #f2f0e6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-icon-symbol {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1;
+  user-select: none;
+}

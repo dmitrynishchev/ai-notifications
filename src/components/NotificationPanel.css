@@ -1,0 +1,495 @@
+.notification-panel {
+  position: relative;
+  width: 308px;
+  /* Space for stacked cards peeking below */
+  padding-bottom: 16px;
+}
+
+/* ─── Stack cards ─── */
+
+.panel-stack-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  height: 48px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.05) 100%),
+    linear-gradient(90deg, #fff 0%, #fff 100%);
+  overflow: hidden;
+  box-shadow: inset 0px -2px 1px rgba(255, 255, 255, 0.4);
+}
+
+.panel-stack-card--back {
+  width: 238px;
+  bottom: 0;
+  border-radius: 15px;
+  transform: scale(0.88);
+  transform-origin: center bottom;
+}
+
+.panel-stack-card--middle {
+  width: 271px;
+  bottom: 6px;
+  border-radius: 17px;
+  transform: scale(0.94);
+  transform-origin: center bottom;
+}
+
+/* ─── Main card (blur crossfade container) ─── */
+
+.panel-main-card {
+  position: relative;
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.panel-main-card--clickable {
+  cursor: pointer;
+}
+
+/* Background layer — card bg visible only when collapsed */
+.panel-main-card-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.05) 100%),
+    linear-gradient(90deg, #fff 0%, #fff 100%);
+  box-shadow: inset 0px -2px 1px rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+/* ─── Collapsed content layer ─── */
+
+.panel-collapsed-content {
+  position: relative;
+  display: flex;
+  gap: 11px;
+  padding: 14px;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.panel-collapsed-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panel-collapsed-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  height: 16px;
+}
+
+.panel-collapsed-title {
+  flex: 1;
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.26px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-collapsed-time {
+  flex-shrink: 0;
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 15px;
+  color: rgba(0, 0, 0, 0.2);
+  letter-spacing: -0.33px;
+}
+
+.panel-collapsed-subtitle {
+  margin: 0;
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.6);
+  letter-spacing: -0.13px;
+}
+
+/* ─── Expanded content layer (header buttons) ─── */
+
+.panel-expanded-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 0 14px;
+}
+
+.panel-header-title {
+  flex: 1;
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.26px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.panel-header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 15px;
+  color: rgba(0, 0, 0, 0.6);
+  letter-spacing: -0.33px;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.panel-header-btn:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .panel-header-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+  }
+}
+
+.panel-header-btn--icon {
+  padding: 4px;
+  width: 23px;
+  height: 23px;
+}
+
+/* ─── Tasks wrapper (height animation) ─── */
+
+.panel-tasks-wrapper {
+  overflow: hidden;
+  position: relative;
+  z-index: 0;
+  contain: content;
+}
+
+
+.panel-tasks-scroll-container {
+  position: relative;
+}
+
+.panel-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 80vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* ─── Scroll edge fade overlays ─── */
+
+.scroll-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 32px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.scroll-fade--visible {
+  opacity: 1;
+}
+
+.scroll-fade--top {
+  top: 0;
+  background: linear-gradient(to bottom, #ffffff, rgba(255, 255, 255, 0));
+}
+
+.scroll-fade--bottom {
+  bottom: 0;
+  background: linear-gradient(to top, #ffffff, rgba(255, 255, 255, 0));
+}
+
+.panel-tasks-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.panel-tasks-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-tasks-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+/* Drag placeholder — dashed outline where the card was */
+.drag-placeholder {
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  box-sizing: border-box;
+  transition: height 0.2s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+}
+
+/* ─── Empty state ─── */
+
+.panel-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 14px;
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.35);
+  letter-spacing: -0.26px;
+}
+
+/* ─── Footer / Delegate button ─── */
+
+.panel-footer {
+  padding-top: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.delegate-btn {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 0.5px solid transparent;
+  border-radius: 32px;
+  background:
+    linear-gradient(to bottom, #1c7ee5 17%, #71b1f2 100%) padding-box,
+    linear-gradient(to bottom, rgba(90, 148, 212, 0.25), rgba(90, 148, 212, 0.07)) border-box;
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 16px;
+  cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  overflow: hidden;
+}
+
+.delegate-btn-sizer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Inner glow — thick ring with gradient border */
+.delegate-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 1000px;
+  background: linear-gradient(
+    to bottom,
+    rgba(231, 242, 253, 1) 0%,
+    rgba(1, 125, 255, 1) 48%,
+    rgba(163, 208, 255, 1) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Inner glow — thin white ring with gradient */
+.delegate-btn::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  padding: 0.5px;
+  border-radius: 1000px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Top shine overlay — flipped pill border for macOS glass effect */
+.delegate-btn-shine {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.delegate-btn-shine::before {
+  content: '';
+  width: 100%;
+  height: 100%;
+  border: 0.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 1000px;
+  transform: scaleY(-1);
+}
+
+.delegate-btn-label {
+  position: relative;
+  font-weight: 700;
+  letter-spacing: -0.26px;
+  background: linear-gradient(to bottom, #ffffff 35%, rgba(202, 229, 255, 0.8));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.delegate-btn-ticker {
+  display: inline-grid;
+  overflow: hidden;
+  vertical-align: baseline;
+  height: 16px;
+}
+
+.delegate-btn-ticker-digit {
+  grid-area: 1 / 1;
+  background: linear-gradient(to bottom, #ffffff 35%, rgba(202, 229, 255, 0.8));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.delegate-btn-hotkey {
+  position: relative;
+  font-weight: 400;
+  letter-spacing: -0.13px;
+  opacity: 0.6;
+  background: linear-gradient(to bottom, #ffffff 35%, rgba(202, 229, 255, 0.8));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.delegate-btn:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .delegate-btn:hover {
+    filter: brightness(1.08);
+  }
+}
+
+.delegate-btn--disabled {
+  cursor: default;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 17%, rgba(0, 0, 0, 0.12) 100%) padding-box,
+    linear-gradient(to bottom, rgba(112, 112, 112, 0.25), rgba(112, 112, 112, 0.07)) border-box;
+}
+
+/* Disabled: hide the thick inner ring */
+.delegate-btn--disabled::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 1000px;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.00) 0%,
+    rgba(0, 0, 0, 0.08) 48%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Disabled: dark text gradient */
+.delegate-btn--disabled .delegate-btn-label {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 35%, rgba(0, 0, 0, 0.4));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Disabled: hide hotkey */
+.delegate-btn--disabled .delegate-btn-hotkey {
+  display: none;
+}
+
+/* ─── Executing state ─── */
+.delegate-btn--executing {
+  cursor: default;
+  pointer-events: none;
+  background: transparent;
+  border-color: transparent;
+}
+
+.delegate-btn--executing::before,
+.delegate-btn--executing::after {
+  display: none;
+}
+
+.delegate-btn--executing .delegate-btn-shine {
+  display: none;
+}
+
+/* ─── Shimmer text ─── */
+.delegate-btn-label--shimmer {
+  background:
+    linear-gradient(90deg, transparent 0%, transparent 35%, rgba(255,255,255,0.8) 50%, transparent 65%, transparent 100%),
+    linear-gradient(to bottom, rgba(0,0,0,0.2) 35%, rgba(0,0,0,0.5));
+  background-size: 250% 100%, 100% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-text 6s linear infinite;
+}
+
+@keyframes shimmer-text {
+  0%   { background-position: 300% center, 0 0; }
+  100% { background-position: -200% center, 0 0; }
+}

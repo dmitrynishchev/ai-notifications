@@ -1,0 +1,68 @@
+.drag-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10000;
+  pointer-events: none;
+  will-change: transform;
+  border-radius: 20px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.05) 100%),
+    linear-gradient(90deg, #fff 0%, #fff 100%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.drag-overlay--snapping {
+  transition: transform 0.2s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+}
+
+.drag-overlay-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  width: 100%;
+}
+
+.drag-overlay-icon {
+  font-size: 18px;
+  color: rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.drag-overlay--outside .drag-overlay-icon {
+  color: oklch(0.64 0.21 25);
+}
+
+.drag-overlay-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.drag-overlay-title {
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.26px;
+}
+
+.drag-overlay-subtitle {
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.4);
+  letter-spacing: -0.13px;
+}

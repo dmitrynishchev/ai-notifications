@@ -1,0 +1,112 @@
+.task-card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.05) 100%),
+    linear-gradient(90deg, #fff 0%, #fff 100%);
+  box-shadow: inset 0px -2px 1px rgba(255, 255, 255, 0.4);
+}
+
+.task-card--done {
+  opacity: 0.5;
+}
+
+.task-card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-card-title {
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.26px;
+  margin: -2px;
+  padding: 2px;
+}
+
+.task-card-title--done {
+  text-decoration: line-through;
+}
+
+.task-card-description {
+  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.6);
+  letter-spacing: -0.13px;
+  margin: -2px;
+  padding: 2px;
+}
+
+.task-card-description--done {
+  text-decoration: line-through;
+}
+
+/* Inline editing inputs */
+.task-card-input {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  padding: 2px;
+  margin: -2px;
+  border-radius: 4px;
+  background: transparent;
+  font-family: inherit;
+  letter-spacing: inherit;
+}
+
+.task-card-input:focus {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+textarea.task-card-title {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.8);
+  letter-spacing: -0.26px;
+}
+
+textarea.task-card-description {
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.6);
+  letter-spacing: -0.13px;
+}
+
+.task-card-textarea {
+  resize: none;
+  overflow: hidden;
+}
+
+/* Draggable state */
+.task-card--draggable {
+  touch-action: none;
+  user-select: none;
+}
+
+@media (pointer: fine) {
+  .task-card--draggable {
+    cursor: grab;
+  }
+
+  .task-card--draggable:active {
+    cursor: grabbing;
+  }
+}
