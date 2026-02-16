@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Task } from '../types'
+import { EASE_OUT, EASE_IN_OUT } from '../animation'
 import { AppIcon } from './AppIcon'
 import { TaskCard } from './TaskCard'
 import { DragOverlay } from './DragOverlay'
@@ -17,17 +18,10 @@ interface NotificationPanelProps {
   onCollapse: () => void
   onClose: () => void
   onToggle: (id: string) => void
-  onEditTitle: (id: string, value: string) => void
-  onEditDescription: (id: string, value: string) => void
   onDelegate: () => void
   onDeleteTask: (id: string) => void
 }
 
-// Enter/exit animations (ease-out-cubic): fast start, gentle landing
-const EASE_OUT = [0.215, 0.61, 0.355, 1] as const
-
-// Morphing/movement of on-screen elements (ease-in-out-quad): smooth acceleration + deceleration
-const EASE_IN_OUT = [0.455, 0.03, 0.515, 0.955] as const
 
 function getStaggerDelay(index: number, total: number, isOpening: boolean) {
   if (!isOpening) return (total - 1 - index) * 0.02
@@ -42,8 +36,8 @@ function useMeasure<T extends HTMLElement>(): [React.RefObject<T | null>, number
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      setHeight(entry.contentRect.height)
+    const ro = new ResizeObserver(() => {
+      if (ref.current) setHeight(ref.current.offsetHeight)
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -78,6 +72,40 @@ function getTaskCountText(count: number): string {
   return `${count} tasks are extracted`
 }
 
+const FRONT_CARD_OVERLAP = 52
+const PEEK_PER_CARD = 8
+const STACK_SCALES = [0.94, 0.88] as const
+const STACK_OPACITIES = [1, 0.85] as const
+
+function getCollapsedStyle(
+  index: number,
+  total: number,
+  offsets: number[],
+  heights: number[]
+): { y: number; scale: number; opacity: number; zIndex: number } {
+  const naturalY = offsets[index] ?? 0
+  const maxStacked = Math.min(2, total - 1)
+
+  // Hidden cards (not in the visible stack)
+  if (index < total - maxStacked) {
+    return { y: -naturalY, scale: 1, opacity: 0, zIndex: total - index }
+  }
+
+  // Stacked card: k=0 (upper/closer to front), k=1 (lower/further back)
+  const k = index - (total - maxStacked)
+  const scale = STACK_SCALES[k] ?? 0.88
+  const opacity = STACK_OPACITIES[k] ?? 0.85
+  const H = heights[index] ?? 72
+  const targetY = FRONT_CARD_OVERLAP + (k + 1) * PEEK_PER_CARD - H * scale
+
+  return {
+    y: targetY - naturalY,
+    scale,
+    opacity,
+    zIndex: maxStacked - k,
+  }
+}
+
 export function NotificationPanel({
   tasks,
   isExpanded,
@@ -86,16 +114,20 @@ export function NotificationPanel({
   onCollapse,
   onClose,
   onToggle,
-  onEditTitle,
-  onEditDescription,
   onDelegate,
   onDeleteTask,
 }: NotificationPanelProps) {
   const [tasksRef, measuredHeight] = useMeasure<HTMLDivElement>()
+  const [headerRef, headerHeight] = useMeasure<HTMLDivElement>()
   const [btnSizerRef, btnContentWidth] = useMeasureWidth<HTMLSpanElement>()
   const panelRef = useRef<HTMLDivElement | null>(null)
   const glitchCleanupRef = useRef<(() => void) | null>(null)
   const [dissolvingIds, setDissolvingIds] = useState<Set<string>>(new Set())
+
+  // Card slot refs + measured offsets for FLIP animation
+  const cardSlotsRef = useRef<Map<string, HTMLDivElement>>(new Map())
+  const [cardOffsets, setCardOffsets] = useState<number[]>([])
+  const skipAnimationRef = useRef(true)
 
   // Track "just expanded" vs "already expanded" for stagger logic
   const wasExpandedRef = useRef(false)
@@ -173,13 +205,14 @@ export function NotificationPanel({
     onGlitchStart: handleGlitchStart,
   })
 
-  // cleanup glitch + drag on collapse/reset
+  // cleanup glitch + drag on collapse/reset + scroll reset
   useEffect(() => {
     if (!isExpanded) {
       glitchCleanupRef.current?.()
       glitchCleanupRef.current = null
       cancelDrag()
       setDissolvingIds(new Set())
+      if (tasksListRef.current) tasksListRef.current.scrollTop = 0
     }
   }, [isExpanded, cancelDrag])
 
@@ -194,6 +227,47 @@ export function NotificationPanel({
   const selectedCount = visibleTasks.filter((t) => t.status === 'selected').length
   const nonDoneCount = visibleTasks.filter((t) => t.status !== 'done').length
   const allDone = nonDoneCount === 0
+
+  // Measure card slot positions for FLIP animation (sync before paint)
+  useLayoutEffect(() => {
+    const offsets = visibleTasks.map(t => {
+      const el = cardSlotsRef.current.get(t.id)
+      return el ? el.offsetTop : 0
+    })
+    setCardOffsets(offsets)
+  }, [visibleTasks.length])
+
+  // Clear skip flag after initial measurement is painted
+  useEffect(() => {
+    if (skipAnimationRef.current && cardOffsets.length > 0) {
+      skipAnimationRef.current = false
+    }
+  }, [cardOffsets])
+
+  // Estimate offsets for newly added cards that haven't been measured yet.
+  // Without this, new cards mount at y ≈ 16 (naturalY fallback 0) instead of
+  // y ≈ 16 − realOffset, causing them to fly in from way below during 0.35s.
+  let effectiveOffsets = cardOffsets
+  if (cardOffsets.length < visibleTasks.length && !isExpanded) {
+    effectiveOffsets = [...cardOffsets]
+    for (let i = effectiveOffsets.length; i < visibleTasks.length; i++) {
+      const prevTask = visibleTasks[i - 1]
+      const prevEl = prevTask ? cardSlotsRef.current.get(prevTask.id) : null
+      const prevOffset = effectiveOffsets[i - 1] ?? 0
+      const prevHeight = prevEl?.offsetHeight ?? 72
+      effectiveOffsets.push(prevOffset + prevHeight + 6) // 6 = flex gap
+    }
+  }
+
+  // Measured heights for each visible task card (used by getCollapsedStyle)
+  const effectiveHeights: number[] = visibleTasks.map(t => {
+    const el = cardSlotsRef.current.get(t.id)
+    return el?.offsetHeight ?? 72
+  })
+
+  // PEEK_HEIGHT: how much layout space the stacked cards region occupies when collapsed
+  const maxStacked = Math.min(2, visibleTasks.length - 1)
+  const PEEK_HEIGHT = maxStacked > 0 ? maxStacked * PEEK_PER_CARD + 2 : 0
 
   const showDelegate = !allDone && selectedCount > 0
   const prevCountRef = useRef(selectedCount)
@@ -210,56 +284,54 @@ export function NotificationPanel({
       className="notification-panel"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2, ease: EASE_OUT } }}
       transition={{ duration: 0.3, ease: EASE_OUT }}
     >
-      {/* Stack cards (back, middle) — fade out on expand */}
-      {tasks.length > 2 && (
-        <motion.div
-          className="panel-stack-card panel-stack-card--back"
-          initial={false}
-          animate={{
-            opacity: isExpanded ? 0 : 0.7,
-            y: isExpanded ? -8 : 0,
-          }}
-          transition={{ duration: 0.25, ease: EASE_OUT, delay: isExpanded ? 0 : 0.1 }}
-        />
-      )}
-      {tasks.length > 1 && (
-        <motion.div
-          className="panel-stack-card panel-stack-card--middle"
-          initial={false}
-          animate={{
-            opacity: isExpanded ? 0 : 0.85,
-            y: isExpanded ? -8 : 0,
-          }}
-          transition={{ duration: 0.25, ease: EASE_OUT, delay: isExpanded ? 0 : 0.1 }}
-        />
-      )}
-
-      {/* Main card — blur crossfade between collapsed and expanded content */}
+      {/* Header reveal — separate element that grows from height:0 */}
       <motion.div
-        className={`panel-main-card ${!isExpanded ? 'panel-main-card--clickable' : ''}`}
+        className="panel-header-reveal"
+        initial={false}
+        animate={{
+          height: isExpanded ? headerHeight : 0,
+          opacity: isExpanded ? 1 : 0,
+        }}
+        transition={{
+          height: { duration: isExpanded ? 0.3 : 0.25, ease: EASE_IN_OUT },
+          opacity: { duration: 0.2, ease: EASE_OUT, delay: isExpanded ? 0.08 : 0 },
+        }}
+      >
+        <div ref={headerRef} className="panel-header">
+          <span className="panel-header-title">Heavyweight Systems</span>
+          <div className="panel-header-actions">
+            <button className="panel-header-btn" onClick={onCollapse}>
+              <span>Show less</span>
+            </button>
+            <button className="panel-header-btn panel-header-btn--icon" onClick={onClose}>
+              <CloseIcon />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Main card — always visible, acts as anchor for FLIP animation */}
+      <motion.div
+        className={`panel-main-card${!isExpanded ? ' panel-main-card--clickable' : ''}`}
         onClick={handleMainCardClick}
         initial={false}
-        animate={{ marginBottom: isExpanded ? -10 : 0 }}
-        transition={{ duration: 0.3, ease: EASE_IN_OUT }}
+        animate={{
+          height: isExpanded ? 0 : 'auto',
+          opacity: isExpanded ? 0 : 1,
+          filter: isExpanded ? 'blur(8px)' : 'blur(0px)',
+        }}
+        transition={{
+          height: { duration: 0.3, ease: EASE_IN_OUT },
+          opacity: { duration: 0.2, ease: EASE_OUT, delay: isExpanded ? 0 : 0.1 },
+          filter: { duration: 0.2, ease: EASE_OUT, delay: isExpanded ? 0 : 0.1 },
+        }}
+        style={{ pointerEvents: isExpanded ? 'none' : 'auto' }}
       >
-        {/* Background layer — visible only in collapsed state */}
-        <motion.div
-          className="panel-main-card-bg"
-          initial={false}
-          animate={{ opacity: isExpanded ? 0 : 1 }}
-          transition={{ duration: 0.3, ease: EASE_OUT, delay: isExpanded ? 0 : 0.05 }}
-        />
-
-        {/* Collapsed content */}
-        <motion.div
-          className="panel-collapsed-content"
-          initial={false}
-          animate={{ opacity: isExpanded ? 0 : 1 }}
-          transition={{ duration: 0.25, ease: EASE_OUT }}
-        >
+        <div className="panel-main-card-bg" />
+        <div className="panel-collapsed-content">
           <AppIcon size={32} />
           <div className="panel-collapsed-text">
             <div className="panel-collapsed-header">
@@ -270,95 +342,84 @@ export function NotificationPanel({
               Looks like they can be delegated to an agent
             </p>
           </div>
-        </motion.div>
-
-        {/* Expanded content (header) */}
-        <motion.div
-          className="panel-expanded-content"
-          initial={false}
-          animate={{ opacity: isExpanded ? 1 : 0 }}
-          transition={{ duration: 0.25, ease: EASE_OUT, delay: isExpanded ? 0.05 : 0 }}
-        >
-          <span className="panel-header-title">Heavyweight Systems</span>
-          <div className="panel-header-actions">
-            <button className="panel-header-btn" onClick={onCollapse}>
-              <ChevronDown />
-              <span>Show less</span>
-            </button>
-            <button className="panel-header-btn panel-header-btn--icon" onClick={onClose}>
-              <CloseIcon />
-            </button>
-          </div>
-        </motion.div>
+        </div>
       </motion.div>
 
-      {/* Tasks wrapper — height animates from 0 to measured */}
+      {/* Cards region — height animates, contains all task cards with FLIP transforms */}
       <motion.div
-        className="panel-tasks-wrapper"
+        className={`panel-cards-region${!isExpanded ? ' panel-cards-region--collapsed' : ''}`}
         initial={false}
-        animate={{ height: isExpanded ? measuredHeight : 0 }}
-        transition={{
-          duration: wasJustExpanded ? 0.3 : 0.25,
-          ease: EASE_IN_OUT,
+        animate={{
+          height: isExpanded ? measuredHeight : PEEK_HEIGHT,
+          y: isExpanded ? 0 : (visibleTasks.length > 0 ? -52 : 0),
         }}
+        transition={{ duration: 0.3, ease: EASE_IN_OUT }}
       >
-        <div ref={tasksRef} className="panel-tasks-inner">
-          <div className="panel-tasks-scroll-container">
-            <div ref={tasksListRef} className="panel-tasks-list">
+        <div ref={tasksRef} className="panel-cards-inner">
+          <div className="panel-cards-scroll-container">
+            <div
+              ref={tasksListRef}
+              className={`panel-cards-list${isExpanded ? ' panel-cards-list--scrollable' : ''}`}
+            >
               <AnimatePresence>
                 {visibleTasks.map((task, index) => {
                   const isNew = newTaskIds.has(task.id)
+                  const collapsed = getCollapsedStyle(index, visibleTasks.length, effectiveOffsets, effectiveHeights)
+
                   return (
-                  <motion.div
-                    key={task.id}
-                    className="panel-task-stagger"
-                    initial={isNew
-                      ? { opacity: 0 }
-                      : false
-                    }
-                    animate={{
-                      y: isExpanded ? 0 : -20 - index * 5,
-                      opacity: isExpanded ? 1 : 0,
-                    }}
-                    exit={{
-                      opacity: 0,
-                      height: 0,
-                      y: -10,
-                      overflow: 'hidden',
-                      transition: { duration: 0.25, ease: EASE_OUT },
-                    }}
-                    transition={{
-                      duration: 0.3,
-                      ease: EASE_OUT,
-                      delay: wasJustExpanded
-                        ? getStaggerDelay(index, visibleTasks.length, isExpanded)
-                        : 0,
-                    }}
-                    onAnimationComplete={() => {
-                      if (isNew) {
-                        setNewTaskIds(prev => {
-                          const next = new Set(prev)
-                          next.delete(task.id)
-                          return next
-                        })
+                    <motion.div
+                      key={task.id}
+                      ref={el => {
+                        if (el) cardSlotsRef.current.set(task.id, el)
+                        else cardSlotsRef.current.delete(task.id)
+                      }}
+                      className="panel-card-slot"
+                      initial={isNew ? { opacity: 0 } : false}
+                      animate={isExpanded
+                        ? { y: 0, scale: 1, opacity: 1 }
+                        : collapsed
                       }
-                    }}
-                  >
-                    {dragState.isDragging && dragState.taskId === task.id ? (
-                      <div
-                        className="drag-placeholder"
-                        style={{ height: dragState.cardRect?.height ?? 0 }}
-                      />
-                    ) : (
-                      <TaskCard
-                        task={task}
-                        onToggle={onToggle}
-                        onEditTitle={onEditTitle}
-                        onEditDescription={onEditDescription}
-                        onPointerDown={(e) => handlePointerDown(task.id, e)}
-                      />
-                    )}
-                  </motion.div>
+                      exit={{
+                        opacity: 0,
+                        height: 0,
+                        y: -10,
+                        overflow: 'hidden',
+                        transition: { duration: 0.25, ease: EASE_OUT },
+                      }}
+                      transition={{
+                        duration: skipAnimationRef.current ? 0 : 0.3,
+                        ease: EASE_IN_OUT,
+                        delay: wasJustExpanded
+                          ? getStaggerDelay(index, visibleTasks.length, isExpanded)
+                          : 0,
+                      }}
+                      style={{
+                        zIndex: collapsed.zIndex,
+                        pointerEvents: isExpanded ? 'auto' : 'none',
+                      }}
+                      onAnimationComplete={() => {
+                        if (isNew) {
+                          setNewTaskIds(prev => {
+                            const next = new Set(prev)
+                            next.delete(task.id)
+                            return next
+                          })
+                        }
+                      }}
+                    >
+                      {dragState.isDragging && dragState.taskId === task.id ? (
+                        <div
+                          className="drag-placeholder"
+                          style={{ height: dragState.cardRect?.height ?? 0 }}
+                        />
+                      ) : (
+                        <TaskCard
+                          task={task}
+                          onToggle={onToggle}
+                          onPointerDown={(e) => handlePointerDown(task.id, e)}
+                        />
+                      )}
+                    </motion.div>
                   )
                 })}
               </AnimatePresence>
@@ -368,7 +429,7 @@ export function NotificationPanel({
                   className="panel-empty"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.3 }}
+                  transition={{ delay: 0.25, duration: 0.2, ease: EASE_OUT }}
                 >
                   All tasks done
                 </motion.div>
@@ -380,6 +441,27 @@ export function NotificationPanel({
 
           {/* Footer inside measured area so its height is part of the animation */}
           {!allDone && (
+            <motion.div
+              className="panel-footer-wrapper"
+              initial={false}
+              animate={{
+                opacity: isExpanded ? 1 : 0,
+                y: isExpanded ? 0 : -20,
+              }}
+              transition={{
+                opacity: {
+                  duration: 0.15,
+                  ease: EASE_OUT,
+                  delay: isExpanded && wasJustExpanded ? 0.15 : 0,
+                },
+                y: {
+                  duration: 0.3,
+                  ease: EASE_OUT,
+                  delay: isExpanded && wasJustExpanded ? 0.15 : 0,
+                },
+              }}
+              style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
+            >
             <div className="panel-footer">
               <motion.button
                 className={`delegate-btn${isExecuting ? ' delegate-btn--executing' : !showDelegate ? ' delegate-btn--disabled' : ''}`}
@@ -421,30 +503,17 @@ export function NotificationPanel({
                       </>
                     )}
                   </span>
-                  {!isExecuting && <span className="delegate-btn-hotkey">􀆔􀅇</span>}
+                  {!isExecuting && <span className="delegate-btn-hotkey">⌘↵</span>}
                 </span>
               </motion.button>
             </div>
+            </motion.div>
           )}
         </div>
       </motion.div>
 
       <DragOverlay dragState={dragState} />
     </motion.div>
-  )
-}
-
-function ChevronDown() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-      <path
-        d="M2.5 3.75L5 6.25L7.5 3.75"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   )
 }
 

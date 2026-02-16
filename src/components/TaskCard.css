@@ -12,6 +12,7 @@
     linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.05) 100%),
     linear-gradient(90deg, #fff 0%, #fff 100%);
   box-shadow: inset 0px -2px 1px rgba(255, 255, 255, 0.4);
+  transition: opacity 0.2s ease-out;
 }
 
 .task-card--done {
@@ -54,45 +55,6 @@
 
 .task-card-description--done {
   text-decoration: line-through;
-}
-
-/* Inline editing inputs */
-.task-card-input {
-  display: block;
-  width: 100%;
-  border: none;
-  outline: none;
-  padding: 2px;
-  margin: -2px;
-  border-radius: 4px;
-  background: transparent;
-  font-family: inherit;
-  letter-spacing: inherit;
-}
-
-.task-card-input:focus {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-textarea.task-card-title {
-  font-weight: 700;
-  font-size: 13px;
-  line-height: 16px;
-  color: rgba(0, 0, 0, 0.8);
-  letter-spacing: -0.26px;
-}
-
-textarea.task-card-description {
-  font-weight: 400;
-  font-size: 13px;
-  line-height: 16px;
-  color: rgba(0, 0, 0, 0.6);
-  letter-spacing: -0.13px;
-}
-
-.task-card-textarea {
-  resize: none;
-  overflow: hidden;
 }
 
 /* Draggable state */

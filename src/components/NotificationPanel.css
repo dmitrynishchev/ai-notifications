@@ -1,42 +1,24 @@
 .notification-panel {
   position: relative;
   width: 308px;
-  /* Space for stacked cards peeking below */
-  padding-bottom: 16px;
 }
 
-/* ─── Stack cards ─── */
+/* ─── Header reveal (height: 0 → auto on expand) ─── */
 
-.panel-stack-card {
-  position: absolute;
-  left: 0;
-  right: 0;
-  margin: 0 auto;
-  height: 48px;
-  background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.05) 100%),
-    linear-gradient(90deg, #fff 0%, #fff 100%);
+.panel-header-reveal {
   overflow: hidden;
-  box-shadow: inset 0px -2px 1px rgba(255, 255, 255, 0.4);
+  position: relative;
+  z-index: 1;
 }
 
-.panel-stack-card--back {
-  width: 238px;
-  bottom: 0;
-  border-radius: 15px;
-  transform: scale(0.88);
-  transform-origin: center bottom;
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 8px 14px;
 }
 
-.panel-stack-card--middle {
-  width: 271px;
-  bottom: 6px;
-  border-radius: 17px;
-  transform: scale(0.94);
-  transform-origin: center bottom;
-}
-
-/* ─── Main card (blur crossfade container) ─── */
+/* ─── Main card (always visible, anchor for FLIP animation) ─── */
 
 .panel-main-card {
   position: relative;
@@ -50,7 +32,7 @@
   cursor: pointer;
 }
 
-/* Background layer — card bg visible only when collapsed */
+/* Background layer — card bg */
 .panel-main-card-bg {
   position: absolute;
   inset: 0;
@@ -70,7 +52,6 @@
   gap: 11px;
   padding: 14px;
   align-items: flex-start;
-  pointer-events: none;
 }
 
 .panel-collapsed-text {
@@ -119,17 +100,6 @@
   line-height: 16px;
   color: rgba(0, 0, 0, 0.6);
   letter-spacing: -0.13px;
-}
-
-/* ─── Expanded content layer (header buttons) ─── */
-
-.panel-expanded-content {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 14px 0 14px;
 }
 
 .panel-header-title {
@@ -188,28 +158,68 @@
   height: 23px;
 }
 
-/* ─── Tasks wrapper (height animation) ─── */
+/* ─── Cards region (height animated, contains all task cards) ─── */
 
-.panel-tasks-wrapper {
-  overflow: hidden;
+.panel-cards-region {
   position: relative;
   z-index: 0;
-  contain: content;
+  overflow: visible;
 }
 
+.panel-cards-region--collapsed {
+  clip-path: inset(0 -200px -200px -200px);
+}
 
-.panel-tasks-scroll-container {
+/* Hide content of stacked cards when collapsed (keep card background visible) */
+.task-card > * {
+  transition: opacity 0.2s ease-out;
+}
+.panel-cards-region--collapsed .task-card > * {
+  opacity: 0;
+}
+
+.panel-cards-scroll-container {
   position: relative;
+  z-index: 1;
 }
 
-.panel-tasks-list {
+.panel-footer-wrapper {
+  position: relative;
+  z-index: 0;
+}
+
+.panel-cards-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Scrollable only when expanded (prevents scroll in collapsed) */
+.panel-cards-list--scrollable {
   max-height: 80vh;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.panel-cards-list--scrollable::-webkit-scrollbar {
+  width: 4px;
+}
+
+.panel-cards-list--scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel-cards-list--scrollable::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
+}
+
+/* ─── Card slot (transform container for FLIP animation) ─── */
+
+.panel-card-slot {
+  transform-origin: center top;
+  will-change: transform, opacity;
 }
 
 /* ─── Scroll edge fade overlays ─── */
@@ -237,19 +247,6 @@
 .scroll-fade--bottom {
   bottom: 0;
   background: linear-gradient(to top, #ffffff, rgba(255, 255, 255, 0));
-}
-
-.panel-tasks-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.panel-tasks-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.panel-tasks-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 2px;
 }
 
 /* Drag placeholder — dashed outline where the card was */

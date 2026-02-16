@@ -13,6 +13,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Expand tap target to 44×44 without affecting layout */
+.checkbox::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+}
+
 .checkbox-icon {
   position: absolute;
   inset: 0;
@@ -25,14 +36,12 @@
   display: block;
 }
 
-/* SF Symbol checkmark */
+/* Checkbox icon (SVG) */
 .checkbox-sf {
-  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: rgba(0, 0, 0, 0.8);
-  letter-spacing: -0.26px;
   pointer-events: none;
 }
 
@@ -44,11 +53,11 @@
   opacity: 0.5;
 }
 
-/* Queued — SF Symbol arrow.right */
+/* Queued — arrow right icon (SVG) */
 .checkbox-queued {
-  font-family: -apple-system, 'SF Pro', 'SF Pro Display', system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: rgba(0, 0, 0, 0.4);
   pointer-events: none;
 }

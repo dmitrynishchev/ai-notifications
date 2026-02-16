@@ -31,10 +31,11 @@
 }
 
 .drag-overlay-icon {
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
-  line-height: 1;
   transition: color 0.15s ease;
 }
 

@@ -26,7 +26,13 @@ export function DragOverlay({ dragState }: DragOverlayProps) {
       }}
     >
       <div className="drag-overlay-content">
-        <span className="drag-overlay-icon">􀈑</span>
+        <span className="drag-overlay-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M4 5.5H14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            <path d="M6.5 5.5V4A1.5 1.5 0 018 2.5H10A1.5 1.5 0 0111.5 4V5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M13 5.5V14A1.5 1.5 0 0111.5 15.5H6.5A1.5 1.5 0 015 14V5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
         <div className="drag-overlay-text">
           <span className="drag-overlay-title">Drag further to discard</span>
           <span className="drag-overlay-subtitle">The task will be saved in the archive</span>

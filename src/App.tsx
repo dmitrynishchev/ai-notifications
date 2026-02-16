@@ -25,14 +25,6 @@ function App() {
     )
   }, [])
 
-  const handleEditTitle = useCallback((id: string, value: string) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, title: value } : t)))
-  }, [])
-
-  const handleEditDescription = useCallback((id: string, value: string) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, description: value } : t)))
-  }, [])
-
   const handleDelegate = useCallback(async () => {
     if (isExecuting) return
     setIsExecuting(true)
@@ -139,8 +131,6 @@ function App() {
                 onCollapse={handleCollapse}
                 onClose={handleClose}
                 onToggle={handleToggle}
-                onEditTitle={handleEditTitle}
-                onEditDescription={handleEditDescription}
                 onDelegate={handleDelegate}
                 onDeleteTask={handleDeleteTask}
               />
