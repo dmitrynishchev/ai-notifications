@@ -9,7 +9,7 @@ interface CheckboxProps {
 
 const BLUR_TRANSITION = {
   duration: 0.2,
-  ease: [0.25, 0.46, 0.45, 0.94],
+  ease: [0.25, 0.46, 0.45, 0.94] as const,
 }
 
 export function Checkbox({ status, onClick }: CheckboxProps) {
